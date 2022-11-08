@@ -42,29 +42,26 @@ class WPREMOTELOG {
         add_action( "wp_ajax_".$this->post_type, array(&$this,"ajax_callback") );
         add_action( "wp_ajax_nopriv_".$this->post_type, array(&$this,"ajax_callback") );
     }
-		function username_login($username, $redirect = null){
-			// Automatic login //
-			$user = get_user_by('login', $username );
-
-			 // Redirect URL //
-			 if ( !is_wp_error( $user ) ){
-			        wp_clear_auth_cookie();
-			        wp_set_current_user ( $user->ID );
-			        wp_set_auth_cookie  ( $user->ID );
-
-			        $redirect_to = user_admin_url();
-			        echo "Vous etes connecte, vous allez etre redirige a la page d'acceuil";
-
-			 } else {
-			        echo json_encode(array('error_code'=>1));
-			 }
-             if($redirect){
-                wp_redirect( $redirect);
-             }else{
-			   wp_redirect($user->user_url);
-             }
-			 exit();
+	function username_login($username, $redirect = null){
+		// Automatic login //
+		$user = get_user_by('login', $username );
+		 // Redirect URL //
+		 if ( !is_wp_error( $user ) ){
+		        wp_clear_auth_cookie();
+			    wp_set_current_user ( $user->ID );
+			    wp_set_auth_cookie  ( $user->ID );
+			    $redirect_to = user_admin_url();
+			    echo "Vous etes connecte, vous allez etre redirige a la page d'acceuil";
+		} else {
+	        echo json_encode(array('error_code'=>1));
 		}
+        if($redirect){
+            wp_redirect( $redirect);
+        }else{
+			wp_redirect($user->user_url);
+        }
+		exit();
+	}
    /**
     ** Call back ajax api
     **/
@@ -98,7 +95,7 @@ class WPREMOTELOG {
                     'password' => $password,
                     'action' => 'wp_auto_login',
                     'function' => 'login',
-                    'redirect' => 'none'
+                    'redirect' => get_admin_url()
                 );
 
                 $params =  http_build_query($data);
