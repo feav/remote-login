@@ -11,29 +11,8 @@
 	Author URI: http://www.global-solutions-group.com
 */
 
-
-header("Access-Control-Allow-Origin: *");
-
-define("WPREMOTELOG_PLUGIN_FILE",__FILE__);
-
-define("WPREMOTELOG_DIR", plugin_dir_path(__FILE__));
-
-define("WPREMOTELOG_URL", plugin_dir_url(__FILE__));
-
-define("WPREMOTELOGT_API_URL_SITE", get_site_url() . "/");
-
-define("WPREMOTELOG_POST_TYPE", "wp_remote_login");
-
-define("WPPRODUCT_POST_TYPE", "product");
-header('Access-Control-Allow-Origin: *');
-header("Access-Control-Allow-Methods: GET, OPTIONS");
-if(isset($_GET['debug'])){
-    ini_set("display_errors", 1);
-    ini_set("display_startup_errors", 1);
-    error_reporting(E_ALL);
-}
 class WPREMOTELOG {
-    protected $post_type = WPREMOTELOG_POST_TYPE;
+    protected $post_type = "wp_remote_login";
     function __construct() {
         $this->init_ajax_api();
     }
@@ -78,7 +57,6 @@ class WPREMOTELOG {
     function ajax_callback(){
         $user_id = get_current_user_id();
         $module = $this->get_var("function");
-        // /wp-admin/admin-ajax.php?action=wp_auto_login&function=login&username=feavfeav@gmail.com&password=feavfeav@gmail.com
         if($module == 'login'){
             $data = array();
             $username = $data['user_login'] = $this->get_var("username");
@@ -90,12 +68,17 @@ class WPREMOTELOG {
                 $user = get_user_by( 'email',$username );
                 $user = wp_signon( $data, false );
                 $url = $redirect . '/wp-admin/admin-ajax.php?';
+                $allowed_roles = array('editor', 'administrator', 'author');
+                $link_redirect = get_site_url();
+                if( array_intersect($allowed_roles, $user->roles ) ) { 
+                    $link_redirect = get_admin_url();
+                } 
                 $data = array(
                     'username' => $user->user_login,
                     'password' => $password,
                     'action' => 'wp_auto_login',
                     'function' => 'login',
-                    'redirect' => get_admin_url()
+                    'redirect' => $link_redirect
                 );
 
                 $params =  http_build_query($data);
@@ -108,25 +91,6 @@ class WPREMOTELOG {
                 }
                 
             }
-
-        }else  if($module == 'getuser'){
-            if($user_id){
-                global $current_user;
-                get_currentuserinfo();
-                $email =  $current_user->user_email;
-                $data = array(
-                    "response"=>200,
-                    "data"=> array(
-                        "email"=>$email,
-                        "pwd"=>$email,
-                        "site"=>$current_user->user_url. "/wp-admin/admin-ajax.php"
-                    )
-                );
-                echo json_encode($data);
-            }else{
-                echo json_encode(array("response"=>400));
-            }
-
         }
         die();
     }
